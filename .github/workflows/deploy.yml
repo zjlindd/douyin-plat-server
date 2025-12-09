@@ -1,0 +1,55 @@
+name: Deploy to Amazon Linux
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build
+      run: npm run build
+
+    - name: Copy files to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        source: "dist/**,package.json,package-lock.json,ecosystem.config.js"
+        target: "/home/${{ secrets.SERVER_USER }}/52tuhu-api"
+        # 移除前面的路径组件，确保 dist 目录结构正确
+        # strip_components: 0 是默认值，这里不需要额外配置，dist/** 会保留 dist 目录
+
+    - name: Install dependencies and restart PM2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          cd ~/52tuhu-api
+          # 安装生产环境依赖
+          npm install --production
+          # 重启或启动服务
+          pm2 reload ecosystem.config.js --env production || pm2 start ecosystem.config.js --env production
+          # 保存 PM2 列表，以便重启后自动恢复
+          pm2 save
