@@ -49,7 +49,10 @@ jobs:
           cd ~/52tuhu-api
           # 安装生产环境依赖
           npm install --production
-          # 重启或启动服务
-          pm2 reload ecosystem.config.js --env production || pm2 start ecosystem.config.js --env production
+          # 先尝试停止并删除应用（如果存在）
+          pm2 stop ecosystem.config.js || true
+          pm2 delete ecosystem.config.js || true
+          # 然后重新启动
+          pm2 start ecosystem.config.js --env production
           # 保存 PM2 列表，以便重启后自动恢复
           pm2 save
