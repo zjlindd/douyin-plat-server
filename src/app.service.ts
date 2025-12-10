@@ -7,7 +7,7 @@ export class AppService {
   constructor(private readonly httpService: HttpService) {}
 
   getHello(): string {
-    return '张建留，您好';
+    return 'hello，您好';
   }
 
   async getNameScoring(name: string = '张三'): Promise<any> {
